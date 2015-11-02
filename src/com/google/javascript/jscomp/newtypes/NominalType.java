@@ -72,14 +72,14 @@ public final class NominalType {
   }
 
   boolean isClassy() {
-    return !isFunction() && !isObject();
+    return !isFunction() && !isBuiltinObject();
   }
 
   boolean isFunction() {
     return "Function".equals(rawType.name);
   }
 
-  private boolean isObject() {
+  boolean isBuiltinObject() {
     return "Object".equals(rawType.name);
   }
 
@@ -232,8 +232,8 @@ public final class NominalType {
     return p != null && p.isConstant();
   }
 
-  static JSType getConstructorObject(FunctionType ctorFn) {
-    return ctorFn.nominalType.rawType.getConstructorObject(ctorFn);
+  JSType getConstructorObject(FunctionType ctorFn) {
+    return this.rawType.getConstructorObject(ctorFn);
   }
 
   boolean isSubtypeOf(NominalType other) {
@@ -319,7 +319,8 @@ public final class NominalType {
   static NominalType pickSubclass(NominalType c1, NominalType c2) {
     if (c1 == null) {
       return c2;
-    } else if (c2 == null) {
+    }
+    if (c2 == null) {
       return c1;
     }
     if (c1.isSubtypeOf(c2)) {

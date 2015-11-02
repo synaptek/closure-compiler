@@ -30,6 +30,7 @@ import com.google.javascript.jscomp.CompilerOptions.LanguageMode;
 import com.google.javascript.jscomp.CoverageInstrumentationPass.CoverageReach;
 import com.google.javascript.jscomp.ExtractPrototypeMemberDeclarations.Pattern;
 import com.google.javascript.jscomp.NodeTraversal.Callback;
+import com.google.javascript.jscomp.lint.CheckArguments;
 import com.google.javascript.jscomp.lint.CheckEmptyStatements;
 import com.google.javascript.jscomp.lint.CheckEnums;
 import com.google.javascript.jscomp.lint.CheckForInOverArray;
@@ -198,6 +199,11 @@ public final class DefaultPassConfig extends PassConfig {
       checks.add(declaredGlobalExternsOnWindow);
     }
 
+    if (options.getLanguageIn() == LanguageMode.ECMASCRIPT6_TYPED
+            && options.getLanguageOut() != LanguageMode.ECMASCRIPT6_TYPED) {
+      checks.add(convertEs6TypedToEs6);
+    }
+
     checks.add(checkVariableReferences);
 
     if (!options.skipNonTranspilationPasses && options.closurePass) {
@@ -222,15 +228,6 @@ public final class DefaultPassConfig extends PassConfig {
 
     if (options.angularPass && !options.skipNonTranspilationPasses) {
       checks.add(angularPass);
-    }
-
-    if (options.getLanguageIn() == LanguageMode.ECMASCRIPT6_TYPED
-        && options.getLanguageOut() != LanguageMode.ECMASCRIPT6_TYPED) {
-      checks.add(convertEs6TypedToEs6);
-    }
-
-    if (options.generateExports && !options.skipNonTranspilationPasses) {
-      checks.add(generateExports);
     }
 
     if (options.exportTestFunctions && !options.skipNonTranspilationPasses) {
@@ -329,20 +326,17 @@ public final class DefaultPassConfig extends PassConfig {
 
     checks.add(createEmptyPass("beforeTypeChecking"));
 
-    if (options.useNewTypeInference) {
+    if (options.getNewTypeInference()) {
       checks.add(symbolTableForNewTypeInference);
       checks.add(newTypeInference);
     }
 
     checks.add(inlineTypeAliases);
 
-    if (options.checkTypes || options.inferTypes
-        // With NTI, we still need OTI to run because the later passes that use
-        // types only understand OTI types at the moment.
-        || options.useNewTypeInference) {
+    if (options.checkTypes || options.inferTypes) {
       checks.add(resolveTypes);
       checks.add(inferTypes);
-      if (options.checkTypes || options.useNewTypeInference) {
+      if (options.checkTypes) {
         checks.add(checkTypes);
       } else {
         checks.add(inferJsDocInfo);
@@ -353,6 +347,10 @@ public final class DefaultPassConfig extends PassConfig {
       if (!options.ideMode) {
         checks.add(clearTypedScopePass);
       }
+    }
+
+    if (options.generateExports) {
+      checks.add(generateExports);
     }
 
     if (!options.disables(DiagnosticGroups.CHECK_USELESS_CODE) ||
@@ -1005,10 +1003,21 @@ public final class DefaultPassConfig extends PassConfig {
       CodingConvention convention = compiler.getCodingConvention();
       if (convention.getExportSymbolFunction() != null &&
           convention.getExportPropertyFunction() != null) {
-        return new GenerateExports(compiler,
+        final GenerateExports pass = new GenerateExports(compiler,
             options.exportLocalPropertyDefinitions,
             convention.getExportSymbolFunction(),
             convention.getExportPropertyFunction());
+        return new CompilerPass() {
+          @Override
+          public void process(Node externs, Node root) {
+            pass.process(externs, root);
+            if (exportedNames == null) {
+              exportedNames = new HashSet<>();
+            }
+
+            exportedNames.addAll(pass.getExportedVariableNames());
+          }
+        };
       } else {
         return new ErrorPass(compiler, GENERATE_EXPORTS_ERROR);
       }
@@ -1588,6 +1597,7 @@ public final class DefaultPassConfig extends PassConfig {
     @Override
     protected HotSwapCompilerPass create(AbstractCompiler compiler) {
       ImmutableList.Builder<Callback> callbacks = ImmutableList.<Callback>builder()
+          .add(new CheckArguments(compiler))
           .add(new CheckEmptyStatements(compiler))
           .add(new CheckEnums(compiler))
           .add(new CheckInterfaces(compiler))

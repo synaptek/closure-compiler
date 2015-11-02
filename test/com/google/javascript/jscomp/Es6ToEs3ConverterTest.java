@@ -50,20 +50,11 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
           "$jscomp.inherits = function(x,y) {};",
           "$jscomp.arrayFromIterable = function(x) {};");
 
-  private LanguageMode languageOut;
-
   @Override
   public void setUp() {
     setAcceptedLanguage(LanguageMode.ECMASCRIPT6);
-    languageOut = LanguageMode.ECMASCRIPT3;
+    setLanguageOut(LanguageMode.ECMASCRIPT3);
     runTypeCheckAfterProcessing = true;
-  }
-
-  @Override
-  protected CompilerOptions getOptions() {
-    CompilerOptions options = super.getOptions();
-    options.setLanguageOut(languageOut);
-    return options;
   }
 
   protected final PassFactory makePassFactory(
@@ -813,7 +804,7 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
    * if the output language is ES5.
    */
   public void testEs5GettersAndSettersClasses() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
 
     test(
         "class C { get value() { return 0; } }",
@@ -925,7 +916,7 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
    * Check that the types from the getter/setter are copied to the declaration on the prototype.
    */
   public void testEs5GettersAndSettersClassesWithTypes() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
 
     test(
         "class C { /** @return {number} */ get value() { return 0; } }",
@@ -982,7 +973,8 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
 
   public void testClassEs5GetterSetterIncorrectTypes() {
     enableTypeCheck();
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
+
 
     // Using @type instead of @return on a getter.
     test(
@@ -1029,7 +1021,7 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
    * @bug 20536614
    */
   public void testStaticGetterSetter() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
 
     test(
         "class C { static get foo() {} }",
@@ -1071,7 +1063,7 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
   }
 
   public void testStaticSetter() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
     test(
         "class C { static set foo(x) {} }",
         LINE_JOINER.join(
@@ -1156,7 +1148,7 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
   }
 
   public void testClassComputedPropGetter() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
 
     test(
         "/** @unrestricted */ class C { /** @return {number} */ get [foo]() { return 4; }}",
@@ -1179,7 +1171,7 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
   }
 
   public void testClassComputedPropSetter() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
 
     test(
         "/** @unrestricted */ class C { /** @param {string} val */ set [foo](val) {}}",
@@ -1202,14 +1194,14 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
   }
 
   public void testClassStaticComputedProps() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
 
     testError("/** @unrestricted */ class C { static set [foo](val) {}}", CANNOT_CONVERT_YET);
     testError("/** @unrestricted */ class C { static get [foo]() {}}", CANNOT_CONVERT_YET);
   }
 
   public void testClassComputedPropGetterAndSetter() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
 
     test(
         LINE_JOINER.join(
@@ -1261,7 +1253,7 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
    * ES5 getters and setters on object literals should be left alone if the languageOut is ES5.
    */
   public void testEs5GettersAndSettersObjLit_es5() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
     testSame("var x = { get y() {} };");
     testSame("var x = { set y(value) {} };");
   }
@@ -1401,10 +1393,39 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
         "var arr = [].concat($jscomp.arrayFromIterable(mid()));");
     test("f(1, [2, ...mid, 4], 5);",
         "f(1, [].concat([2], $jscomp.arrayFromIterable(mid), [4]), 5);");
-    test("function f() { return [...arguments]; };",
-        "function f() { return [].concat($jscomp.arrayFromIterable(arguments)); };");
-    test("function f() { return [...arguments, 2]; };",
-        "function f() { return [].concat($jscomp.arrayFromIterable(arguments), [2]); };");
+    test(
+        "function f() { return [...arguments]; };",
+        LINE_JOINER.join(
+            "function f() {",
+            "  return [].concat($jscomp.arrayFromArguments(arguments));",
+            "};"));
+    test(
+        "function f() { return [...arguments, 2]; };",
+        LINE_JOINER.join(
+            "function f() {",
+            "  return [].concat($jscomp.arrayFromArguments(arguments), [2]);",
+            "};"));
+  }
+
+  public void testUnsupportedUsesOfArguments() {
+    // In this case, we don't recognize that 'x' is be an 'Arguments' object, so we produce
+    // code that will ultimately fail with a TypeError at runtime. However, this code fails the
+    // CheckArguments lint check so it should happen rarely.
+    test(
+        LINE_JOINER.join(
+            "function g(x) {",
+            "  return [...x];",
+            "}",
+            "function f() {",
+            "  return g(arguments);",
+            "}"),
+        LINE_JOINER.join(
+            "function g(x) {",
+            "  return [].concat($jscomp.arrayFromIterable(x));",
+            "}",
+            "function f() {",
+            "  return g(arguments);",
+            "}"));
   }
 
   public void testSpreadCall() {
@@ -1597,7 +1618,7 @@ public final class Es6ToEs3ConverterTest extends CompilerTestCase {
   }
 
   public void testComputedPropGetterSetter() {
-    languageOut = LanguageMode.ECMASCRIPT5;
+    setLanguageOut(LanguageMode.ECMASCRIPT5);
 
     testSame("var obj = {get latest () {return undefined;}}");
     testSame("var obj = {set latest (str) {}}");

@@ -104,9 +104,10 @@ Window.prototype.globalStorage;
 
 /**
  * @type {!History}
+ * @suppress {duplicate}
  * @see https://developer.mozilla.org/en/DOM/window.history
  */
-Window.prototype.history;
+var history;
 
 /**
  * Returns the number of frames (either frame or iframe elements) in the
@@ -118,6 +119,10 @@ Window.prototype.history;
 Window.prototype.length;
 
 /**
+ * Location has an exception in the DeclaredGlobalExternsOnWindow pass
+ * so we have to manually include it:
+ * https://github.com/google/closure-compiler/blob/master/src/com/google/javascript/jscomp/DeclaredGlobalExternsOnWindow.java#L116
+ *
  * @type {!Location}
  * @implicitCast
  * @see https://developer.mozilla.org/en/DOM/window.location
@@ -473,7 +478,7 @@ Document.prototype.execCommand;
 
 /**
  * @param {string} s id.
- * @return {HTMLElement}
+ * @return {Element}
  * @nosideeffects
  * @see https://developer.mozilla.org/en/DOM/document.getElementById
  */

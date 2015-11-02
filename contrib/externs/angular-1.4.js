@@ -192,6 +192,12 @@ angular.isUndefined = function(value) {};
  */
 angular.lowercase = function(s) {};
 
+/**
+ * @param {Object} dest
+ * @param {...Object} srcs
+ */
+angular.merge = function(dest, srcs) {};
+
 angular.mock = {};
 
 /**
@@ -1140,9 +1146,19 @@ angular.$ariaProvider.prototype.config = function(config) {};
  *       (JQLiteSelector|Object),
  *       function(!angular.Scope, Function=)=, number=):
  *           function(!angular.Scope,
- *               function(!angular.JQLite, !angular.Scope=)=): !angular.JQLite}
+ *               function(!angular.JQLite, !angular.Scope=)=,
+ *                   angular.$compile.LinkOptions=): !angular.JQLite}
  */
 angular.$compile;
+
+/**
+ * @typedef {{
+ *   parentBoundTranscludeFn: (Function|undefined),
+ *   transcludeControllers: (Object|undefined),
+ *   futureParentElement: (angular.JQLite|undefined)
+ * }}
+ */
+angular.$compile.LinkOptions;
 
 // TODO(martinprobst): remaining $compileProvider methods.
 
@@ -2098,30 +2114,21 @@ angular.$routeParams;
  * $routeProvider Service
  *****************************************************************************/
 
-/**
- * @typedef {{
- *   otherwise:
- *       function(
- *           (string|!angular.$routeProvider.Params)): !angular.$routeProvider,
- *   when:
- *       function(
- *           string, angular.$routeProvider.Params): !angular.$routeProvider
- *   }}
- */
-angular.$routeProvider;
+/** @constructor */
+angular.$routeProvider = function() {};
 
 /**
  * @param {(string|!angular.$routeProvider.Params)} params
  * @return {!angular.$routeProvider}
  */
-angular.$routeProvider.otherwise = function(params) {};
+angular.$routeProvider.prototype.otherwise = function(params) {};
 
 /**
  * @param {string} path
  * @param {angular.$routeProvider.Params} route
  * @return {!angular.$routeProvider}
  */
-angular.$routeProvider.when = function(path, route) {};
+angular.$routeProvider.prototype.when = function(path, route) {};
 
 /**
  * @typedef {{

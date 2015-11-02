@@ -2522,11 +2522,11 @@ DOMTokenList.prototype.toString = function() {};
 
 /**
  * A better interface to CSS classes than className.
- * @type {DOMTokenList}
- * @see http://www.w3.org/TR/html5/elements.html#dom-classlist
+ * @type {!DOMTokenList}
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/classList
  * @const
  */
-HTMLElement.prototype.classList;
+Element.prototype.classList;
 
 /**
  * Constraint Validation API properties and methods
@@ -2976,7 +2976,10 @@ Document.prototype.msHidden;
  * @see http://www.w3.org/TR/components-intro/
  * @see http://w3c.github.io/webcomponents/spec/custom/#extensions-to-document-interface-to-register
  * @param {string} type
- * @param {{extends: (string|undefined), prototype: (Object|undefined)}} options
+ * @param {{extends: (string|undefined), prototype: (Object|undefined)}=} options
+ * @return {!Function} a constructor for the new tag. A generic function is the best we
+ *     can do here as it allows the return value to be annotated properly
+ *     at the call site.
  */
 Document.prototype.registerElement;
 

@@ -1147,6 +1147,10 @@ public final class JsDocInfoParserTest extends BaseJSTypeTestCase {
     parseFull("/** @param {{x : function(), 'y'}|function()} n\n*/");
   }
 
+  public void testParseRecordType24() throws Exception {
+    parseFull("/** @param {{a : b, c,}} n\n*/");
+  }
+
   public void testParseParamError1() throws Exception {
     parseFull("/** @param\n*/",
         "Bad type annotation. expecting a variable name in a @param tag");
@@ -4446,6 +4450,6 @@ public final class JsDocInfoParserTest extends BaseJSTypeTestCase {
 
   private void assertTemplatizedTypeEquals(TemplateType key, JSType expected,
                                            JSTypeExpression te) {
-    assertThat(resolve(te).getTemplateTypeMap().getTemplateType(key)).isEqualTo(expected);
+    assertThat(resolve(te).getTemplateTypeMap().getResolvedTemplateType(key)).isEqualTo(expected);
   }
 }

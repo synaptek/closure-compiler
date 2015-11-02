@@ -62,7 +62,7 @@ public final class ES6ModuleLoader {
                 return createUri(path);
               }
             });
-    this.moduleUris = new HashSet<URI>();
+    this.moduleUris = new HashSet<>();
     for (CompilerInput input : inputs) {
       if (!moduleUris.add(normalizeInputAddress(input))) {
         // Having root URIs "a" and "b" and source files "a/f.js" and "b/f.js" is ambiguous.
@@ -136,7 +136,8 @@ public final class ES6ModuleLoader {
 
   private static URI createUri(String input) {
     // Colons might cause URI.create() to fail
-    String forwardSlashes = input.replace(':', '-').replace("\\", MODULE_SLASH);
+    String forwardSlashes =
+        input.replace(':', '-').replace("\\", MODULE_SLASH).replace(" ", "%20");
     return URI.create(forwardSlashes).normalize();
   }
 
@@ -165,7 +166,8 @@ public final class ES6ModuleLoader {
             .replace('\\', '$')
             .replace('-', '_')
             .replace(':', '_')
-            .replace('.', '_');
+            .replace('.', '_')
+            .replace("%20", "_");
     return "module$" + moduleName;
   }
 }
